@@ -3,6 +3,7 @@ package com.example.micha.driverecorder;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -14,13 +15,14 @@ import android.view.MenuItem;
 import android.widget.TextView;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity implements SensorEventListener, Runnable {
 
     private Handler customHandler = new Handler();
     private TextView timerValue;
     private Sensor acc;
     private double reading;
-
+    Thread worker;
+    boolean work = true;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -29,9 +31,28 @@ public class MainActivity extends ActionBarActivity {
         timerValue = (TextView)findViewById(R.id.textView1);
         Log.w("D:","BBB");
         acc = getSensor();
+
         Log.w("C:","AAA");
+        worker = new Thread(this);
     }
 
+    @Override
+    protected void onResume() {
+        work = true;
+        worker.start();
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        work = false;
+        try{
+            worker.join();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+        super.onPause();
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -62,6 +83,7 @@ public class MainActivity extends ActionBarActivity {
         Sensor mSensor;
 
         mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mSensorManager.registerListener(this,mSensor, SensorManager.SENSOR_DELAY_NORMAL);
         return mSensor;
 
     }
@@ -77,16 +99,29 @@ public class MainActivity extends ActionBarActivity {
         Log.w("B:",Double.toString(reading));
     }
 
-    private Runnable updateTimerThread = new Runnable() {
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
-        public void run() {
+    }
+    Handler h = new Handler();
+    @Override
+    public void run() {
+        while (work) {
+            Log.w("A:", Double.toString(reading));
+            h.post(new Runnable(){
+                @Override public void run(){
+                    timerValue.setText(String.format("%f",  reading));
 
-            Log.w("A:",Double.toString(reading));
-
-            timerValue.setText(Double.toString(reading));
-            customHandler.postDelayed(this, 0);
+                }
+                });
+           try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
+    }
 
-    };
+
 
 }
