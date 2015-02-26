@@ -30,6 +30,9 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     private Sensor acc;
     private double reading;
     private double avgerror;
+    private double squareerrorsum;
+    private double readingsum;
+    private double iteration;
     private double avg;
     Thread worker;
     boolean work = true;
@@ -138,14 +141,20 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
                     pBar.setProgress((int)(100*(reading/50)));
                     if (start){
                         if (!firstMeasurment){
+                            iteration=iteration+1;
+                            squareerrorsum=squareerrorsum+Math.pow(reading-avg,2);
+                            avgerror=Math.sqrt(squareerrorsum/iteration);
+                            readingsum=readingsum+reading;
+                            avg=readingsum/iteration;
 
-                            avgerror=(Math.abs(avg-reading)+avgerror)/2;
-                            avg=(avg+reading)/2;
                         }
                         else{
                             firstMeasurment=false;
+                            iteration=1;
                             avg=reading;
+                            readingsum=reading;
                             avgerror=0;
+                            squareerrorsum=0;
                         }
                     }
                     average.setText(String.format("%f", avg));
@@ -154,7 +163,7 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
                 }
                 });
            try {
-                Thread.sleep(100);
+                Thread.sleep(500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
